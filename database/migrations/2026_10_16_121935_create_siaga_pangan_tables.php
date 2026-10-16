@@ -29,7 +29,6 @@ return new class extends Migration
             $table->timestamps();
         });
 
-
         /*
         |--------------------------------------------------------------------------
         | Commodities
@@ -49,7 +48,6 @@ return new class extends Migration
 
             $table->timestamps();
         });
-
 
         /*
         |--------------------------------------------------------------------------
@@ -78,7 +76,6 @@ return new class extends Migration
 
             $table->timestamps();
         });
-
 
         /*
         |--------------------------------------------------------------------------
@@ -118,10 +115,9 @@ return new class extends Migration
             $table->index([
                 'region_id',
                 'commodity_id',
-                'price_date'
+                'price_date',
             ]);
         });
-
 
         /*
         |--------------------------------------------------------------------------
@@ -165,10 +161,9 @@ return new class extends Migration
                 'region_id',
                 'commodity_id',
                 'forecast_date',
-                'model_name'
-            ]);
+                'model_name',
+            ], 'pf_region_commodity_date_model_unique');
         });
-
 
         /*
         |--------------------------------------------------------------------------
@@ -203,10 +198,9 @@ return new class extends Migration
             $table->unique([
                 'region_id',
                 'commodity_id',
-                'record_date'
+                'record_date',
             ]);
         });
-
 
         /*
         |--------------------------------------------------------------------------
@@ -247,10 +241,9 @@ return new class extends Migration
             $table->unique([
                 'warehouse_id',
                 'commodity_id',
-                'record_date'
+                'record_date',
             ]);
         });
-
 
         /*
         |--------------------------------------------------------------------------
@@ -286,10 +279,9 @@ return new class extends Migration
 
             $table->unique([
                 'region_id',
-                'observed_date'
+                'observed_date',
             ]);
         });
-
 
         /*
         |--------------------------------------------------------------------------
@@ -326,10 +318,9 @@ return new class extends Migration
             $table->index([
                 'region_id',
                 'commodity_id',
-                'indicator_date'
+                'indicator_date',
             ]);
         });
-
 
         /*
         |--------------------------------------------------------------------------
@@ -367,10 +358,9 @@ return new class extends Migration
 
             $table->index([
                 'source_type',
-                'recorded_at'
+                'recorded_at',
             ]);
         });
-
 
         /*
         |--------------------------------------------------------------------------
@@ -427,10 +417,9 @@ return new class extends Migration
             $table->index([
                 'region_id',
                 'commodity_id',
-                'reported_at'
+                'reported_at',
             ]);
         });
-
 
         /*
         |--------------------------------------------------------------------------
@@ -514,10 +503,9 @@ return new class extends Migration
                 'region_id',
                 'commodity_id',
                 'prediction_date',
-                'horizon_days'
-            ]);
+                'horizon_days',
+            ], 'rp_region_commodity_date_horizon_unique');
         });
-
 
         /*
         |--------------------------------------------------------------------------
@@ -554,7 +542,6 @@ return new class extends Migration
 
             $table->index('risk_prediction_id');
         });
-
 
         /*
         |--------------------------------------------------------------------------
@@ -605,10 +592,9 @@ return new class extends Migration
 
             $table->index([
                 'risk_prediction_id',
-                'destination_region_id'
-            ]);
+                'destination_region_id',
+            ], 'da_risk_prediction_destination_region_index');
         });
-
 
         /*
         |--------------------------------------------------------------------------
@@ -688,10 +674,9 @@ return new class extends Migration
             $table->index([
                 'destination_region_id',
                 'commodity_id',
-                'status'
+                'status',
             ]);
         });
-
 
         /*
         |--------------------------------------------------------------------------
@@ -727,7 +712,6 @@ return new class extends Migration
             $table->timestamps();
         });
     }
-
 
     public function down(): void
     {

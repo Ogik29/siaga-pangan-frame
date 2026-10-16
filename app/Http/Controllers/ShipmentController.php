@@ -3,11 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\Shipment;
-
 use App\Services\BlockchainService;
-
-use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
 
 class ShipmentController extends Controller
@@ -34,24 +33,19 @@ class ShipmentController extends Controller
         );
     }
 
-
     public function confirmSender(
         Request $request,
         Shipment $shipment
     ): RedirectResponse {
         $shipment->update([
-            'sender_user_id' =>
-            auth()->id(),
+            'sender_user_id' => Auth::id(),
 
-            'sender_confirmed_at' =>
-            now(),
+            'sender_confirmed_at' => now(),
 
-            'dispatched_at' =>
-            $shipment->dispatched_at
+            'dispatched_at' => $shipment->dispatched_at
                 ?? now(),
 
-            'status' =>
-            'In Transit',
+            'status' => 'In Transit',
         ]);
 
         $this->syncLedger(
@@ -65,23 +59,18 @@ class ShipmentController extends Controller
             );
     }
 
-
     public function confirmReceiver(
         Request $request,
         Shipment $shipment
     ): RedirectResponse {
         $shipment->update([
-            'receiver_user_id' =>
-            auth()->id(),
+            'receiver_user_id' => Auth::id(),
 
-            'receiver_confirmed_at' =>
-            now(),
+            'receiver_confirmed_at' => now(),
 
-            'arrived_at' =>
-            now(),
+            'arrived_at' => now(),
 
-            'status' =>
-            'Received',
+            'status' => 'Received',
         ]);
 
         $this->syncLedger(
@@ -94,7 +83,6 @@ class ShipmentController extends Controller
                 'Shipment receipt confirmed.'
             );
     }
-
 
     private function syncLedger(
         Shipment $shipment

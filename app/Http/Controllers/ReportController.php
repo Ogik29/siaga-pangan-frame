@@ -3,16 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreCitizenReportRequest;
-
-use App\Models\Region;
-use App\Models\Commodity;
 use App\Models\CitizenReport;
+use App\Models\Commodity;
 use App\Models\PriceRecord;
-
+use App\Models\Region;
 use App\Services\ReportAnalysisService;
-
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
 
 class ReportController extends Controller
@@ -25,26 +22,26 @@ class ReportController extends Controller
     {
         $regions =
             Region::query()
-            ->where('is_active', true)
-            ->orderBy('name')
-            ->get();
+                ->where('is_active', true)
+                ->orderBy('name')
+                ->get();
 
         $commodities =
             Commodity::query()
-            ->where('is_active', true)
-            ->orderBy('name')
-            ->get();
+                ->where('is_active', true)
+                ->orderBy('name')
+                ->get();
 
         $reports =
             CitizenReport::query()
-            ->with([
-                'region',
-                'commodity',
-                'user',
-            ])
-            ->latest('reported_at')
-            ->limit(20)
-            ->get();
+                ->with([
+                    'region',
+                    'commodity',
+                    'user',
+                ])
+                ->latest('reported_at')
+                ->limit(20)
+                ->get();
 
         return view(
             'reports.index',
@@ -56,13 +53,11 @@ class ReportController extends Controller
         );
     }
 
-
     public function store(
         StoreCitizenReportRequest $request
     ): RedirectResponse {
         $validated =
             $request->validated();
-
 
         /*
         |--------------------------------------------------------------------------
@@ -75,13 +70,12 @@ class ReportController extends Controller
         if ($request->hasFile('photo')) {
             $photoPath =
                 $request
-                ->file('photo')
-                ->store(
-                    'reports',
-                    'public'
-                );
+                    ->file('photo')
+                    ->store(
+                        'reports',
+                        'public'
+                    );
         }
-
 
         /*
         |--------------------------------------------------------------------------
@@ -91,10 +85,9 @@ class ReportController extends Controller
 
         $analysis =
             $this->reportAnalysisService
-            ->analyze(
-                $validated['description']
-            );
-
+                ->analyze(
+                    $validated['description']
+                );
 
         /*
         |--------------------------------------------------------------------------
@@ -104,40 +97,28 @@ class ReportController extends Controller
 
         $report =
             CitizenReport::create([
-                'user_id' =>
-                auth()->id(),
+                'user_id' => Auth::id(),
 
-                'region_id' =>
-                $validated['region_id'],
+                'region_id' => $validated['region_id'],
 
-                'commodity_id' =>
-                $validated['commodity_id'],
+                'commodity_id' => $validated['commodity_id'],
 
-                'description' =>
-                $validated['description'],
+                'description' => $validated['description'],
 
-                'photo_path' =>
-                $photoPath,
+                'photo_path' => $photoPath,
 
-                'issue_type' =>
-                $analysis['issue_type'],
+                'issue_type' => $analysis['issue_type'],
 
-                'urgency' =>
-                $analysis['urgency'],
+                'urgency' => $analysis['urgency'],
 
-                'sentiment_score' =>
-                $analysis['sentiment_score'],
+                'sentiment_score' => $analysis['sentiment_score'],
 
-                'is_verified' =>
-                false,
+                'is_verified' => false,
 
-                'eligible_for_risk' =>
-                false,
+                'eligible_for_risk' => false,
 
-                'reported_at' =>
-                now(),
+                'reported_at' => now(),
             ]);
-
 
         /*
         |--------------------------------------------------------------------------
@@ -149,7 +130,6 @@ class ReportController extends Controller
             $report
         );
 
-
         return redirect()
             ->route('reports')
             ->with(
@@ -158,41 +138,39 @@ class ReportController extends Controller
             );
     }
 
-
     private function verifyReportEligibility(
         CitizenReport $report
     ): void {
         $start =
             $report->reported_at
-            ->copy()
-            ->subDay();
+                ->copy()
+                ->subDay();
 
         $independentReports =
             CitizenReport::query()
-            ->where(
-                'region_id',
-                $report->region_id
-            )
-            ->where(
-                'commodity_id',
-                $report->commodity_id
-            )
-            ->whereBetween(
-                'reported_at',
-                [
-                    $start,
-                    $report->reported_at,
-                ]
-            )
-            ->whereNotNull('user_id')
-            ->where(
-                'id',
-                '!=',
-                $report->id
-            )
-            ->distinct('user_id')
-            ->count('user_id');
-
+                ->where(
+                    'region_id',
+                    $report->region_id
+                )
+                ->where(
+                    'commodity_id',
+                    $report->commodity_id
+                )
+                ->whereBetween(
+                    'reported_at',
+                    [
+                        $start,
+                        $report->reported_at,
+                    ]
+                )
+                ->whereNotNull('user_id')
+                ->where(
+                    'id',
+                    '!=',
+                    $report->id
+                )
+                ->distinct('user_id')
+                ->count('user_id');
 
         /*
         |--------------------------------------------------------------------------
@@ -202,21 +180,6 @@ class ReportController extends Controller
 
         $latestDate =
             PriceRecord::query()
-            ->where(
-                'region_id',
-                $report->region_id
-            )
-            ->where(
-                'commodity_id',
-                $report->commodity_id
-            )
-            ->max('price_date');
-
-        $priceAnomaly = false;
-
-        if ($latestDate) {
-            $currentPrice =
-                PriceRecord::query()
                 ->where(
                     'region_id',
                     $report->region_id
@@ -225,23 +188,38 @@ class ReportController extends Controller
                     'commodity_id',
                     $report->commodity_id
                 )
-                ->whereDate(
-                    'price_date',
-                    $latestDate
-                )
-                ->avg('price');
+                ->max('price_date');
+
+        $priceAnomaly = false;
+
+        if ($latestDate) {
+            $currentPrice =
+                PriceRecord::query()
+                    ->where(
+                        'region_id',
+                        $report->region_id
+                    )
+                    ->where(
+                        'commodity_id',
+                        $report->commodity_id
+                    )
+                    ->whereDate(
+                        'price_date',
+                        $latestDate
+                    )
+                    ->avg('price');
 
             $nationalAverage =
                 PriceRecord::query()
-                ->where(
-                    'commodity_id',
-                    $report->commodity_id
-                )
-                ->whereDate(
-                    'price_date',
-                    $latestDate
-                )
-                ->avg('price');
+                    ->where(
+                        'commodity_id',
+                        $report->commodity_id
+                    )
+                    ->whereDate(
+                        'price_date',
+                        $latestDate
+                    )
+                    ->avg('price');
 
             if (
                 $nationalAverage > 0 &&
@@ -251,7 +229,6 @@ class ReportController extends Controller
                 $priceAnomaly = true;
             }
         }
-
 
         /*
         |--------------------------------------------------------------------------
@@ -274,14 +251,11 @@ class ReportController extends Controller
             || $priceAnomaly
         ) {
             $report->update([
-                'is_verified' =>
-                true,
+                'is_verified' => true,
 
-                'eligible_for_risk' =>
-                true,
+                'eligible_for_risk' => true,
 
-                'verified_at' =>
-                now(),
+                'verified_at' => now(),
             ]);
         }
     }

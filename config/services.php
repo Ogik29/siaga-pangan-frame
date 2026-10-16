@@ -35,4 +35,9 @@ return [
         ],
     ],
 
+    // ai for app
+    'ai' => [
+        'url' => env('AI_SERVICE_URL'),
+    ],
+
 ];

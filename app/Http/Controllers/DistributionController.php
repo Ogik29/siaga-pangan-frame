@@ -3,13 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\RiskPrediction;
-use App\Models\DistributionAllocation;
 use App\Models\Shipment;
-
 use App\Services\DistributionService;
-
-use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 class DistributionController extends Controller
@@ -42,18 +40,17 @@ class DistributionController extends Controller
 
         $recommendations =
             $this->distributionService
-            ->recommend(
-                $validated['region_id'],
-                $validated['commodity_id'],
-                $validated['required_tons']
-            );
+                ->recommend(
+                    $validated['region_id'],
+                    $validated['commodity_id'],
+                    $validated['required_tons']
+                );
 
         return response()->json([
             'success' => true,
             'data' => $recommendations,
         ]);
     }
-
 
     public function sendRecommendation(
         RiskPrediction $prediction
@@ -68,8 +65,7 @@ class DistributionController extends Controller
             $prediction
         ) {
             foreach (
-                $prediction->allocations
-                as $allocation
+                $prediction->allocations as $allocation
             ) {
                 if (
                     $allocation->shipments()->exists()
@@ -79,11 +75,11 @@ class DistributionController extends Controller
 
                 $batchId =
                     'BRS-'
-                    . $prediction->region->code
-                    . '-'
-                    . now()->format('Y')
-                    . '-'
-                    . str_pad(
+                    .$prediction->region->code
+                    .'-'
+                    .now()->format('Y')
+                    .'-'
+                    .str_pad(
                         (string) $allocation->id,
                         3,
                         '0',
@@ -91,41 +87,29 @@ class DistributionController extends Controller
                     );
 
                 Shipment::create([
-                    'distribution_allocation_id' =>
-                    $allocation->id,
+                    'distribution_allocation_id' => $allocation->id,
 
-                    'commodity_id' =>
-                    $prediction->commodity_id,
+                    'commodity_id' => $prediction->commodity_id,
 
-                    'origin_warehouse_id' =>
-                    $allocation->warehouse_id,
+                    'origin_warehouse_id' => $allocation->warehouse_id,
 
-                    'destination_region_id' =>
-                    $allocation->destination_region_id,
+                    'destination_region_id' => $allocation->destination_region_id,
 
-                    'sender_user_id' =>
-                    auth()->id(),
+                    'sender_user_id' => Auth::id(),
 
-                    'receiver_user_id' =>
-                    null,
+                    'receiver_user_id' => null,
 
-                    'batch_id' =>
-                    $batchId,
+                    'batch_id' => $batchId,
 
-                    'destination_name' =>
-                    'Regional Receiving Point',
+                    'destination_name' => 'Regional Receiving Point',
 
-                    'quantity_tons' =>
-                    $allocation->quantity_tons,
+                    'quantity_tons' => $allocation->quantity_tons,
 
-                    'status' =>
-                    'Prepared',
+                    'status' => 'Prepared',
 
-                    'prepared_at' =>
-                    now(),
+                    'prepared_at' => now(),
 
-                    'qr_token' =>
-                    'QR-' . strtoupper(
+                    'qr_token' => 'QR-'.strtoupper(
                         bin2hex(
                             random_bytes(8)
                         )
@@ -133,8 +117,7 @@ class DistributionController extends Controller
                 ]);
 
                 $allocation->update([
-                    'status' =>
-                    'Shipment Created',
+                    'status' => 'Shipment Created',
                 ]);
             }
         });
@@ -143,14 +126,11 @@ class DistributionController extends Controller
             ->route(
                 'analysis',
                 [
-                    'region_id' =>
-                    $prediction->region_id,
+                    'region_id' => $prediction->region_id,
 
-                    'commodity_id' =>
-                    $prediction->commodity_id,
+                    'commodity_id' => $prediction->commodity_id,
 
-                    'horizon_days' =>
-                    $prediction->horizon_days,
+                    'horizon_days' => $prediction->horizon_days,
                 ]
             )
             ->with(
