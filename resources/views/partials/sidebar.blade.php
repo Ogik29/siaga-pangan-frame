@@ -1,46 +1,44 @@
-<aside class="col-auto p-0">
+<aside class="sp-sidebar">
 
-    <div class="p-4" style="width: 230px;">
+    <div class="sp-side-menu">
 
-        <div class="d-flex flex-column gap-2">
+        <a
+            href="{{ route('dashboard') }}"
+            class="sp-side-link {{ request()->routeIs('dashboard') ? 'active' : '' }}"
+        >
+            <span class="sp-number">1</span>
+            <span>Dashboard</span>
+        </a>
 
-            <a
-                href="{{ route('dashboard') }}"
-                class="btn text-start
-                {{ request()->routeIs('dashboard') ? 'btn-secondary' : 'btn-light' }}"
-            >
-                <i class="bi bi-grid"></i>
-                Dashboard
-            </a>
+        <a
+            href="{{ route('analysis') }}"
+            class="sp-side-link {{ request()->routeIs('analysis*') ? 'active' : '' }}"
+        >
+            <span class="sp-number">2</span>
+            <span>Analysis</span>
+        </a>
 
-            <a
-                href="{{ route('analysis') }}"
-                class="btn text-start
-                {{ request()->routeIs('analysis') ? 'btn-secondary' : 'btn-light' }}"
-            >
-                <i class="bi bi-graph-up"></i>
-                Analysis
-            </a>
+        <a
+            href="{{ route('reports') }}"
+            class="sp-side-link {{ request()->routeIs('reports*') ? 'active' : '' }}"
+        >
+            <span class="sp-number">3</span>
+            <span>Reports</span>
+        </a>
 
-            <a
-                href="{{ route('reports') }}"
-                class="btn text-start
-                {{ request()->routeIs('reports') ? 'btn-secondary' : 'btn-light' }}"
-            >
-                <i class="bi bi-file-text"></i>
-                Reports
-            </a>
+    </div>
 
+    <div class="sp-purpose">
+
+        <div class="sp-purpose-title">
+            System Purpose:
         </div>
 
-        <hr class="my-5">
-
-        <strong>System Purpose</strong>
-
-        <p class="small text-secondary mt-2">
-            Detect food security risks, optimize distribution,
-            and track assistance transparently.
-        </p>
+        <div class="sp-purpose-text">
+            Detect regional food risks, support preventive action,
+            optimize stock distribution, and improve supply-chain
+            transparency.
+        </div>
 
     </div>
 

@@ -1,37 +1,33 @@
-<nav class="navbar navbar-expand-lg bg-white border-bottom">
-    <div class="container-fluid px-4">
+<nav class="sp-navbar">
+
+    <a href="{{ route('dashboard') }}" class="sp-brand">
+        <span class="sp-brand-icon"></span>
+        <span>SiagaPangan</span>
+    </a>
+
+    <div class="sp-top-menu">
 
         <a
             href="{{ route('dashboard') }}"
-            class="navbar-brand fw-bold"
+            class="sp-top-link {{ request()->routeIs('dashboard') ? 'active' : '' }}"
         >
-            SiagaPangan
+            Dashboard
         </a>
 
-        <div class="d-flex gap-4">
+        <a
+            href="{{ route('analysis') }}"
+            class="sp-top-link {{ request()->routeIs('analysis*') ? 'active' : '' }}"
+        >
+            Analysis
+        </a>
 
-            <a
-                href="{{ route('dashboard') }}"
-                class="text-decoration-none text-dark fw-semibold"
-            >
-                Dashboard
-            </a>
-
-            <a
-                href="{{ route('analysis') }}"
-                class="text-decoration-none text-dark fw-semibold"
-            >
-                Analysis
-            </a>
-
-            <a
-                href="{{ route('reports') }}"
-                class="text-decoration-none text-dark fw-semibold"
-            >
-                Reports
-            </a>
-
-        </div>
+        <a
+            href="{{ route('reports') }}"
+            class="sp-top-link {{ request()->routeIs('reports*') ? 'active' : '' }}"
+        >
+            Reports
+        </a>
 
     </div>
+
 </nav>
