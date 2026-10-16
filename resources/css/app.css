@@ -1,9 +1,52 @@
-@import 'tailwindcss';
+:root {
+    --sp-primary: #111827;
+    --sp-border: #a7b0bf;
+    --sp-background: #f8fafc;
+    --sp-card: #ffffff;
+    --sp-text: #172033;
+    --sp-muted: #667085;
+}
 
-@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
-@source '../../storage/framework/views/*.php';
+body {
+    margin: 0;
+    background: var(--sp-background);
+    color: var(--sp-text);
+    font-family: Inter, Arial, sans-serif;
+}
 
-@theme {
-    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
-        'Segoe UI Symbol', 'Noto Color Emoji';
+.app-shell {
+    min-height: 100vh;
+}
+
+.main-content {
+    padding: 28px 32px;
+}
+
+.sp-card {
+    background: var(--sp-card);
+    border: 2px solid var(--sp-border);
+    border-radius: 18px;
+}
+
+.sp-btn-primary {
+    background: var(--sp-primary);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    padding: 10px 20px;
+    font-weight: 600;
+}
+
+.sp-btn-primary:hover {
+    background: #1f2937;
+    color: white;
+}
+
+.sp-muted {
+    color: var(--sp-muted);
+}
+
+.sp-section-title {
+    font-size: 18px;
+    font-weight: 700;
 }
