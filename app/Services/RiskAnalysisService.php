@@ -1,20 +1,20 @@
 <?php
-// Enam feature tersebut persis mengikuti paper: forecast price change, price deviation, stock coverage, shipment delay, 
+
+// Enam feature tersebut persis mengikuti paper: forecast price change, price deviation, stock coverage, shipment delay,
 // rainfall anomaly, dan verified report volume. Threshold awalnya juga 70 = High, 40 = Medium, <40 = Low.
 
 namespace App\Services;
 
-use App\Models\Region;
+use App\Models\CitizenReport;
 use App\Models\Commodity;
-use App\Models\PriceRecord;
-use App\Models\PriceForecast;
 use App\Models\DemandRecord;
+use App\Models\PriceForecast;
+use App\Models\PriceRecord;
+use App\Models\Region;
+use App\Models\RiskPrediction;
+use App\Models\Shipment;
 use App\Models\StockRecord;
 use App\Models\WeatherRecord;
-use App\Models\CitizenReport;
-use App\Models\Shipment;
-use App\Models\RiskPrediction;
-
 use Illuminate\Support\Carbon;
 
 class RiskAnalysisService
@@ -56,22 +56,25 @@ class RiskAnalysisService
             ? (float) $currentPriceRecord->price
             : 0;
 
-
         /*
         |--------------------------------------------------------------------------
         | National Mean & Standard Deviation
         |--------------------------------------------------------------------------
         */
 
-        $latestRegionalPrices = PriceRecord::query()
-            ->where('commodity_id', $commodityId)
-            ->whereDate(
-                'price_date',
-                $currentPriceRecord?->price_date
-            )
-            ->pluck('price')
-            ->map(fn($price) => (float) $price)
-            ->values();
+        $latestRegionalPrices = collect();
+
+        if ($currentPriceRecord) {
+            $latestRegionalPrices = PriceRecord::query()
+                ->where('commodity_id', $commodityId)
+                ->whereDate(
+                    'price_date',
+                    $currentPriceRecord->price_date
+                )
+                ->pluck('price')
+                ->map(fn ($price) => (float) $price)
+                ->values();
+        }
 
         $nationalMean = $latestRegionalPrices->avg();
 
@@ -80,8 +83,7 @@ class RiskAnalysisService
         if ($latestRegionalPrices->count() > 1) {
             $variance = $latestRegionalPrices
                 ->map(
-                    fn($price) =>
-                    pow($price - $nationalMean, 2)
+                    fn ($price) => pow($price - $nationalMean, 2)
                 )
                 ->avg();
         }
@@ -95,23 +97,26 @@ class RiskAnalysisService
             )
             : 0;
 
-
         /*
         |--------------------------------------------------------------------------
         | Forecast
         |--------------------------------------------------------------------------
         */
 
-        $forecast = PriceForecast::query()
-            ->where('region_id', $regionId)
-            ->where('commodity_id', $commodityId)
-            ->where(
-                'forecast_date',
-                '>=',
-                $currentPriceRecord?->price_date
-            )
-            ->orderBy('forecast_date')
-            ->first();
+        $forecast = null;
+
+        if ($currentPriceRecord) {
+            $forecast = PriceForecast::query()
+                ->where('region_id', $regionId)
+                ->where('commodity_id', $commodityId)
+                ->where(
+                    'forecast_date',
+                    '>=',
+                    $currentPriceRecord->price_date
+                )
+                ->orderBy('forecast_date')
+                ->first();
+        }
 
         $forecastPriceChangePct = 0;
 
@@ -128,7 +133,6 @@ class RiskAnalysisService
                     / $currentPrice
                 ) * 100;
         }
-
 
         /*
         |--------------------------------------------------------------------------
@@ -160,8 +164,7 @@ class RiskAnalysisService
             ->unique('warehouse_id');
 
         $availableStock = $stockRecords->sum(
-            fn($stock) =>
-            max(
+            fn ($stock) => max(
                 0,
                 $stock->quantity_tons
                     - $stock->reserved_tons
@@ -186,7 +189,6 @@ class RiskAnalysisService
         $stockCoverageDays = $dailyDemand > 0
             ? $availableStock / $dailyDemand
             : 0;
-
 
         /*
         |--------------------------------------------------------------------------
@@ -215,16 +217,14 @@ class RiskAnalysisService
         $shipmentDelayDays =
             $historicalShipments->count() > 0
             ? $historicalShipments
-            ->map(
-                fn($shipment) =>
-                $shipment->dispatched_at
-                    ->diffInHours(
-                        $shipment->arrived_at
-                    ) / 24
-            )
-            ->avg()
+                ->map(
+                    fn ($shipment) => $shipment->dispatched_at
+                        ->diffInHours(
+                            $shipment->arrived_at
+                        ) / 24
+                )
+                ->avg()
             : 0;
-
 
         /*
         |--------------------------------------------------------------------------
@@ -246,7 +246,6 @@ class RiskAnalysisService
             ? (float) $weather->rainfall_anomaly_mm
             : 0;
 
-
         /*
         |--------------------------------------------------------------------------
         | Verified Community Reports
@@ -259,22 +258,21 @@ class RiskAnalysisService
 
         $verifiedReportVolume =
             CitizenReport::query()
-            ->where('region_id', $regionId)
-            ->where(
-                'commodity_id',
-                $commodityId
-            )
-            ->where('is_verified', true)
-            ->where('eligible_for_risk', true)
-            ->whereBetween(
-                'reported_at',
-                [
-                    $reportStart,
-                    $analysisDate,
-                ]
-            )
-            ->count();
-
+                ->where('region_id', $regionId)
+                ->where(
+                    'commodity_id',
+                    $commodityId
+                )
+                ->where('is_verified', true)
+                ->where('eligible_for_risk', true)
+                ->whereBetween(
+                    'reported_at',
+                    [
+                        $reportStart,
+                        $analysisDate,
+                    ]
+                )
+                ->count();
 
         /*
         |--------------------------------------------------------------------------
@@ -283,40 +281,33 @@ class RiskAnalysisService
         */
 
         $features = [
-            'forecast_price_change_pct' =>
-            round(
+            'forecast_price_change_pct' => round(
                 $forecastPriceChangePct,
                 4
             ),
 
-            'price_deviation_sd' =>
-            round(
+            'price_deviation_sd' => round(
                 $priceDeviationSd,
                 4
             ),
 
-            'stock_coverage_days' =>
-            round(
+            'stock_coverage_days' => round(
                 $stockCoverageDays,
                 4
             ),
 
-            'shipment_delay_days' =>
-            round(
+            'shipment_delay_days' => round(
                 $shipmentDelayDays,
                 4
             ),
 
-            'rainfall_anomaly_mm' =>
-            round(
+            'rainfall_anomaly_mm' => round(
                 $rainfallAnomaly,
                 4
             ),
 
-            'verified_report_volume' =>
-            $verifiedReportVolume,
+            'verified_report_volume' => $verifiedReportVolume,
         ];
-
 
         /*
         |--------------------------------------------------------------------------
@@ -326,7 +317,7 @@ class RiskAnalysisService
 
         $aiResult =
             $this->aiPredictionService
-            ->predict($features);
+                ->predict($features);
 
         if ($aiResult) {
             $riskScore = (float) (
@@ -353,7 +344,6 @@ class RiskAnalysisService
             $modelSource = 'fallback';
         }
 
-
         /*
         |--------------------------------------------------------------------------
         | Save Prediction
@@ -365,35 +355,27 @@ class RiskAnalysisService
                 [
                     'region_id' => $regionId,
                     'commodity_id' => $commodityId,
-                    'prediction_date' =>
-                    $analysisDate->toDateString(),
+                    'prediction_date' => $analysisDate->toDateString(),
                     'horizon_days' => $horizonDays,
                 ],
                 [
-                    'forecast_price_change_pct' =>
-                    $features['forecast_price_change_pct'],
+                    'forecast_price_change_pct' => $features['forecast_price_change_pct'],
 
-                    'price_deviation_sd' =>
-                    $features['price_deviation_sd'],
+                    'price_deviation_sd' => $features['price_deviation_sd'],
 
-                    'stock_coverage_days' =>
-                    $features['stock_coverage_days'],
+                    'stock_coverage_days' => $features['stock_coverage_days'],
 
-                    'shipment_delay_days' =>
-                    $features['shipment_delay_days'],
+                    'shipment_delay_days' => $features['shipment_delay_days'],
 
-                    'rainfall_anomaly_mm' =>
-                    $features['rainfall_anomaly_mm'],
+                    'rainfall_anomaly_mm' => $features['rainfall_anomaly_mm'],
 
-                    'verified_report_volume' =>
-                    $features['verified_report_volume'],
+                    'verified_report_volume' => $features['verified_report_volume'],
 
                     'risk_score' => $riskScore,
 
                     'risk_level' => $riskLevel,
 
-                    'model_name' =>
-                    $aiResult
+                    'model_name' => $aiResult
                         ? 'XGBoost'
                         : 'Prototype Risk Engine',
 
@@ -402,7 +384,6 @@ class RiskAnalysisService
                     'input_snapshot' => $features,
                 ]
             );
-
 
         /*
         |--------------------------------------------------------------------------
@@ -414,20 +395,15 @@ class RiskAnalysisService
 
         foreach ($factors as $factor) {
             $prediction->factors()->create([
-                'factor_code' =>
-                $factor['code'] ?? 'UNKNOWN',
+                'factor_code' => $factor['code'] ?? 'UNKNOWN',
 
-                'factor_name' =>
-                $factor['name'] ?? 'Unknown Factor',
+                'factor_name' => $factor['name'] ?? 'Unknown Factor',
 
-                'contribution_percentage' =>
-                $factor['percentage'] ?? 0,
+                'contribution_percentage' => $factor['percentage'] ?? 0,
 
-                'raw_value' =>
-                $factor['value'] ?? null,
+                'raw_value' => $factor['value'] ?? null,
 
-                'description' =>
-                $factor['description'] ?? null,
+                'description' => $factor['description'] ?? null,
             ]);
         }
 
@@ -437,7 +413,6 @@ class RiskAnalysisService
             'factors',
         ]);
     }
-
 
     private function fallbackPrediction(
         array $features
@@ -514,42 +489,31 @@ class RiskAnalysisService
 
             $factors[] = [
                 'code' => strtoupper($code),
-                'name' =>
-                ucwords(
+                'name' => ucwords(
                     str_replace(
                         '_',
                         ' ',
                         $code
                     )
                 ),
-                'percentage' =>
-                $percentage,
-                'value' =>
-                $features[match ($code) {
-                    'forecast_price_change' =>
-                    'forecast_price_change_pct',
+                'percentage' => $percentage,
+                'value' => $features[match ($code) {
+                    'forecast_price_change' => 'forecast_price_change_pct',
 
-                    'price_deviation' =>
-                    'price_deviation_sd',
+                    'price_deviation' => 'price_deviation_sd',
 
-                    'low_stock' =>
-                    'stock_coverage_days',
+                    'low_stock' => 'stock_coverage_days',
 
-                    'shipment_delay' =>
-                    'shipment_delay_days',
+                    'shipment_delay' => 'shipment_delay_days',
 
-                    'rainfall_anomaly' =>
-                    'rainfall_anomaly_mm',
+                    'rainfall_anomaly' => 'rainfall_anomaly_mm',
 
-                    'verified_reports' =>
-                    'verified_report_volume',
+                    'verified_reports' => 'verified_report_volume',
 
-                    default =>
-                    'risk_score',
+                    default => 'risk_score',
                 }] ?? null,
 
-                'description' =>
-                'Prototype contribution based on the current risk feature.',
+                'description' => 'Prototype contribution based on the current risk feature.',
             ];
         }
 
@@ -559,7 +523,6 @@ class RiskAnalysisService
             'factors' => $factors,
         ];
     }
-
 
     private function riskLevel(
         float $score
